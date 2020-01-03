@@ -15,7 +15,7 @@
 #define clear_token(tok) (buf.clear(), token(tok))
 
 
-lexer::lexer(string f):filename(f)
+lexer::lexer(string f) :filename(f)
 {
 	error.clear();
 	lineno = 1;
@@ -61,8 +61,8 @@ int lexer::java_scan() {
 scan:
 	switch (c = next) {
 	case '\n':
-		lineno += 1; 
-	case '\t': 
+		lineno += 1;
+	case '\t':
 	case ' ':
 		goto scan;
 	case '(':
@@ -84,7 +84,7 @@ scan:
 	case '%':
 		return token(JAVA_TOKEN_OP_MOD);
 	case '^':
-		return next == '=' ? token(JAVA_TOKEN_OP_BIT_NOT_ASSIGN):\
+		return next == '=' ? token(JAVA_TOKEN_OP_BIT_NOT_ASSIGN) : \
 			(undo, token(JAVA_TOKEN_OP_NOT));
 	case '~':
 		return token(JAVA_TOKEN_OP_BIT_NOT);
@@ -102,7 +102,7 @@ scan:
 		case '=':
 			return token(JAVA_TOKEN_OP_PLUS_ASSIGN);
 		default:
-			return undo,token(JAVA_TOKEN_OP_PLUS);
+			return undo, token(JAVA_TOKEN_OP_PLUS);
 		}
 	case '-':
 		switch (c = next) {
@@ -158,7 +158,7 @@ scan:
 	case '>':
 		switch (c = next) {
 		case '=':return token(JAVA_TOKEN_OP_GTE);
-		case '>':switch(c = next) {
+		case '>':switch (c = next) {
 		case '=':return token(JAVA_TOKEN_OP_BIT_SHR_ASSIGN);
 		case '>': return '=' == next ? token(JAVA_TOKEN_OP_BIT_SHR_ZERO_ASSIGN) : \
 			(undo, token(JAVA_TOKEN_OP_BIT_SHR_ZERO));
@@ -184,12 +184,12 @@ scan:
 		case '=':return token(JAVA_TOKEN_OP_BIT_OR_ASSIGN);
 		default:return (undo, token(JAVA_TOKEN_OP_BIT_OR));
 		}
-	case '&': 
-		switch(c = next) {
+	case '&':
+		switch (c = next) {
 		case '&': return token(JAVA_TOKEN_OP_AND);
 		case '=': return token(JAVA_TOKEN_OP_BIT_AND_ASSIGN);
 		default: return undo, token(JAVA_TOKEN_OP_BIT_AND);
-	}
+		}
 	case '"':
 		//搜索字符串
 		return scan_string(c);
@@ -203,7 +203,7 @@ scan:
 		return 0;
 
 	}
-	
+
 }
 
 static int CharToNum(const char c) {
@@ -241,14 +241,14 @@ int lexer::scan_string(int quate) {
 		case '\n':
 			lineno++;
 			break;
-		//反斜杠字符，转义,此处 C++'\\'代表 输入的'\'， 易错
+			//反斜杠字符，转义,此处 C++'\\'代表 输入的'\'， 易错
 		case '\\':
 			switch (c = next) {
 			case '\'':
 				c = '\'';
 				break;
 			case'\\':
-				c= '\\';
+				c = '\\';
 				break;
 			case 'a':
 				c = '\a';
@@ -267,7 +267,7 @@ int lexer::scan_string(int quate) {
 				break;
 			case 't':
 				c = '\t';
-				break;			
+				break;
 			case 'u':
 				//16进制表示的字符；
 				c = hex_literal();
@@ -375,7 +375,7 @@ int lexer::scan_number(int c) {
 	switch (c) {
 	case '0':
 		switch (c = next) {
-		//16进制数
+			//16进制数
 		case 'X':goto scan_hex;
 		case 'x': goto scan_hex;
 		default:
@@ -387,111 +387,111 @@ int lexer::scan_number(int c) {
 		goto scan_int;
 	}
 
-//检测为16进制数
-scan_hex: 
-{		
-	if (!isxdigit(c = next)) 
+	//检测为16进制数
+scan_hex:
 	{
-	error("hex literal expects one or more digits");
-	return 0;
+		if (!isxdigit(c = next))
+		{
+			error("hex literal expects one or more digits");
+			return 0;
+		}
+		else
+		{
+			do {
+				n = n << 4 | CharToNum(c);
+			} while (isxdigit(c = next));
+			undo;
+			return 1;
+
+		}
+
+
 	}
-	else 
+	//检测整数部分
+scan_int:
 	{
-	do {
-		n = n << 4 | CharToNum(c);
-	} while (isxdigit(c = next));
-	undo;
-	return 1;
 
-}
+		do {
+			//JAVA 规范，数字连接符
+			if ('_' == c) continue;
+			//存在小数
+			else if ('.' == c) goto scan_float;
+			//科学计数法
+			else if ('e' == c or 'E' == c)goto scan_expo;
+			n = n * 10 + c - '0';
 
+		} while (isdigit(c = next) or '_' == c or '.' == c or 'e' == c or 'E' == c);
+		//只是整数
 
-}
-//检测整数部分
-scan_int: 
-{
-
-	do {
-		//JAVA 规范，数字连接符
-		if ('_' == c) continue;
-		//存在小数
-		else if ('.' == c) goto scan_float;
-		//科学计数法
-		else if ('e' == c or 'E' == c)goto scan_expo;
-		n = n * 10 + c - '0';
-
-	} while (isdigit(c=next) or '_'==c or '.'==c or 'e'==c or 'E'==c );
-	//只是整数
-
-	//结束为'L'用长整形
-	if (c == 'L') {
-		tok.value.as_long = n;
-		token(JAVA_TOKEN_CONSTANT_LONG);
+		//结束为'L'用长整形
+		if (c == 'L') {
+			tok.value.as_long = n;
+			token(JAVA_TOKEN_CONSTANT_LONG);
+		}
+		//否则用Int 存储
+		else {
+			undo;
+			tok.value.as_int = n;
+			token(JAVA_TOKEN_CONSTANT_INT);
+		}
+		return 1;
 	}
-	//否则用Int 存储
-	else {
-		undo;
-		tok.value.as_int = n;
-		token(JAVA_TOKEN_CONSTANT_INT);
-	}
-	return 1;
-}
 
-//检测小数部分
+	//检测小数部分
 scan_float:
-{
-	e = 1;
-	type = 1;
-	//小数type
-	token(JAVA_TOKEN_CONSTANT_DOUBLE);
-	//当前c='.'
-	while (isdigit(c = next) or '_' == c or 'e' == c or 'E' == c) {
-		if (c == '_')continue;
-		else if ('e' == c || 'E' == c)goto scan_expo;
-		n = n * 10 + c - '0';
-		e *= 10;
-	}
-	//无科学计数法
-	//指定用float进行存储   
-	if (c = 'F') {
-		token(JAVA_TOKEN_CONSTANT_FLOAT);
-		tok.value.as_float = (float)n / e;
-	}
-	//否则默认用DOUBLE储存
-	else {
-		undo;
-		tok.value.as_real = (double)n / e;
-	}
-	return 1;
+	{
+		e = 1;
+		type = 1;
+		//小数type
+		token(JAVA_TOKEN_CONSTANT_DOUBLE);
+		//当前c='.'
+		while (isdigit(c = next) or '_' == c or 'e' == c or 'E' == c) {
+			if (c == '_')continue;
+			else if ('e' == c || 'E' == c)goto scan_expo;
+			n = n * 10 + c - '0';
+			e *= 10;
+		}
+		//无科学计数法
+		//指定用float进行存储   
+		if (c = 'F') {
+			token(JAVA_TOKEN_CONSTANT_FLOAT);
+			tok.value.as_float = (float)n / e;
+		}
+		//否则默认用DOUBLE储存
+		else {
+			undo;
+			tok.value.as_real = (double)n / e;
+		}
+		return 1;
 
-}
+	}
 
-//出现科学计数法
+	//出现科学计数法
 scan_expo:
 	{
-	while (isdigit(c = next) or '+' == c or '-' == c) {
-		if ('-' == c) {
-			if (expo_type == 1) {
-				expo_type = 0;
-				continue;
+		while (isdigit(c = next) or '+' == c or '-' == c) {
+			if ('-' == c) {
+				if (expo_type == 1) {
+					expo_type = 0;
+					continue;
+				}
+				else {
+					error("invalid digit");
+					return 0;
+				}
 			}
-			else {
-				error("invalid digit");
-				return 0;
+			if ('+' == c) {
+				if (expo_type == 1) {
+					expo_type = 2;
+					continue;
+				}
+				else {
+					error("invalid digit");
+					return 0;
+				}
 			}
+			expo = expo * 10 + c - '0';
 		}
-		if ('+' == c) {
-			if (expo_type == 1) {
-				expo_type = 2;
-				continue;
-			}
-			else {
-				error("invalid digit");
-				return 0;
-			}
-		}
-		expo = expo * 10 + c - '0';
-	}
 		undo;
 		if (expo_type == 0) expo *= -1;
 		if (type == 0)
@@ -506,29 +506,122 @@ scan_expo:
 打印token信息
 */
 
-
 void lexer::java_token_to_xml(const java_token_t &tok) {
-	cerr << "<" << java_token_xml_type[tok.token_type] << ">";
+	cerr << "<" << java_token_xml_type[tok.token_type] << ">\t";
 	if (tok.token_type == JAVA_TOKEN_CONSTANT_STRING || tok.token_type == JAVA_TOKEN_ID) {
-		cerr <<":" << tok.value.as_string;
+		cerr << "Value:" << tok.value.as_string<<"\t";
 	}
 	else if (tok.token_type == JAVA_TOKEN_CONSTANT_INT) {
-		cerr << ":" << tok.value.as_int;
+		cerr << "Value:" << tok.value.as_int << "\t";
 	}
-	else if (tok.token_type==JAVA_TOKEN_CONSTANT_LONG) {
-		cerr << ":" << tok.value.as_long;
+	else if (tok.token_type == JAVA_TOKEN_CONSTANT_LONG) {
+		cerr << "Value:" << tok.value.as_long << "\t";
 	}
 	else if (tok.token_type == JAVA_TOKEN_CONSTANT_FLOAT) {
-		cerr << ":" << tok.value.as_float;
+		cerr << "Value:" << tok.value.as_float << "\t";
 	}
 	else if (tok.token_type == JAVA_TOKEN_CONSTANT_DOUBLE) {
-		cerr << ":" << tok.value.as_real;
+		cerr << "Value:" << tok.value.as_real << "\t";
 	}
 	else if (tok.token_type == JAVA_TOKEN_ILLEGAL) {
-		cerr << error << endl;
+		cerr << "Value:Null"<< error << endl << "\t";
 	}
+	else {
+		cerr << "Value:Null\t";
+	}
+	//输出属性值
+	cerr << "Entity: 0x" << hex << EnumTohex(tok.token_type) << "\t";
 	cerr << "<" << java_token_xml_type[tok.token_type] << ">" << endl;
 }
+
+//将token的enum转化成16进制属性值，按照实验要求
+unsigned int lexer::EnumTohex(int JAVA_TOKEN) {
+	//错误单词 ILLEGAL
+	if (JAVA_TOKEN == JAVA_TOKEN_ILLEGAL) {
+		return 0x100;
+	}
+	//关键字
+	else if (JAVA_TOKEN >= JAVA_TOKEN_DO and JAVA_TOKEN < +JAVA_TOKEN_SYNCHRONIZED) {
+		return 0x103;
+	}
+	//标识符
+	else if (JAVA_TOKEN == JAVA_TOKEN_ID) {
+		return 0x104;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_CONSTANT_TRUE or JAVA_TOKEN == JAVA_TOKEN_CONSTANT_FALSE) {
+		return 0x105;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_CONSTANT_CHAR) {
+		return 0x106;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_CONSTANT_INT or JAVA_TOKEN == JAVA_TOKEN_LONG) {
+		return 0x107;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_CONSTANT_FLOAT or JAVA_TOKEN == JAVA_TOKEN_CONSTANT_DOUBLE) {
+		return 0x108;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_CONSTANT_STRING) {
+		return 0x109;
+	}
+	else if (JAVA_TOKEN >= JAVA_TOKEN_OP_ASSIGN and \
+		JAVA_TOKEN <= JAVA_TOKEN_OP_BIT_SHR_ASSIGN) {
+		return 0x110;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_OP_COND) {
+		return 0x111;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_OP_OR)
+	{
+		return 0x112;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_OP_AND) {
+		return 0x113;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_OP_BIT_OR) {
+		return 0x114;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_OP_BIT_XOR) {
+		return 0x115;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_OP_BIT_AND) {
+		return 0x116;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_OP_EQ or JAVA_TOKEN == JAVA_TOKEN_OP_NEQ) {
+		return 0x117;
+	}
+	else if (JAVA_TOKEN >= JAVA_TOKEN_OP_GT and JAVA_TOKEN <= JAVA_TOKEN_OP_LTE) {
+		return 0x118;
+	}
+	else if (JAVA_TOKEN >= JAVA_TOKEN_OP_BIT_SHL and JAVA_TOKEN <= JAVA_TOKEN_OP_BIT_SHR_ZERO) {
+		return 0x119;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_OP_PLUS || JAVA_TOKEN == JAVA_TOKEN_OP_MINUS)
+	{
+		return 0x11a;
+	}
+	else if (JAVA_TOKEN >= JAVA_TOKEN_OP_MUL and JAVA_TOKEN <= JAVA_TOKEN_OP_MOD) {
+		return 0x11b;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_OP_INCR or JAVA_TOKEN == JAVA_TOKEN_OP_DECR) {
+		return 0x11c;
+	}
+	else if (JAVA_TOKEN >= JAVA_TOKEN_LPAREN and JAVA_TOKEN <= JAVA_TOKEN_RBRACK) {
+		return 0x11b;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_COMMA) {
+		return 0x120;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_LBRACE or JAVA_TOKEN <= JAVA_TOKEN_RBRACE) {
+		return 0x121;
+	}
+	else if (JAVA_TOKEN == JAVA_TOKEN_SEMICOLON) {
+		return 0x122;
+	}
+
+	return 0x123;
+}
+
+
 //
 //size_t
 //file_size(FILE *stream) {
@@ -554,11 +647,11 @@ char * file_read(const string filename) {
 		//return buffer;
 		//不知道为什么出现乱码
 
-        string str((istreambuf_iterator<char>(readfile)),\
-			    std::istreambuf_iterator<char>());
+		string str((istreambuf_iterator<char>(readfile)), \
+			std::istreambuf_iterator<char>());
 		char* ans = new char[str.length() + 1];
-	/*	cerr << strlen(str.c_str()) << "  " << str.length() << endl;*/
-		strcpy_s(ans, str.length()+1,str.c_str());
+		/*	cerr << strlen(str.c_str()) << "  " << str.length() << endl;*/
+		strcpy_s(ans, str.length() + 1, str.c_str());
 		return ans;
 	}
 	return NULL;
@@ -576,10 +669,11 @@ void lexer::scan() {
 		cin >> f;
 		set_filename(f);
 	}
-	cerr << "<filename>" << filename <<"<filename>" << endl;
+	cerr << "<filename>" << filename << "<filename>" << endl;
 	//读取文件内容
 	source = file_read(filename);
-	cerr << source << endl;
+	//cerr << source << endl;
+	cerr << "Start Analysis" << endl;
 	while (tok.token_type != JAVA_TOKEN_EOS) {
 		java_lexer_reset();
 		java_scan();
@@ -588,3 +682,4 @@ void lexer::scan() {
 	free(source);
 	cerr << "Word Analysis Finished" << endl;
 }
+

@@ -75,26 +75,28 @@ using namespace std;
   t(OP_NEQ, "!=") \
   t(OP_AND, "&&") \
   t(OP_OR, "||") \
+\
   t(OP_ASSIGN, "=") \
   t(OP_PLUS_ASSIGN, "+=") \
   t(OP_MINUS_ASSIGN, "-=") \
   t(OP_MUL_ASSIGN, "*=") \
   t(OP_DIV_ASSIGN, "/=") \
   t(OP_MOD_ASSIGN,"%=") \
+  t(OP_BIT_SHR_ASSIGN, ">>=") \
+  t(OP_BIT_SHL_ASSIGN, "<<=") \
+  t(OP_BIT_AND_ASSIGN,"&=") \
+  t(OP_BIT_NOT_ASSIGN,"^=") \
+  t(OP_BIT_OR_ASSIGN,"|=") \
+  t(OP_BIT_SHR_ZERO_ASSIGN,">>>=") \
+\
   t(OP_BIT_OR, "|") \
   t(OP_BIT_AND, "&") \
   t(OP_BIT_XOR, "^") \
   t(OP_BIT_NOT, "~") \
   t(OP_BIT_SHL, "<<") \
   t(OP_BIT_SHR, ">>") \
-  t(OP_BIT_SHR_ASSIGN, ">>=") \
-  t(OP_BIT_SHL_ASSIGN, "<<=") \
 \
-  t(OP_BIT_AND_ASSIGN,"&=") \
-  t(OP_BIT_NOT_ASSIGN,"^=") \
-  t(OP_BIT_OR_ASSIGN,"|=") \
   t(OP_BIT_SHR_ZERO,">>>") \
-  t(OP_BIT_SHR_ZERO_ASSIGN,">>>=") \
   t(OP_COND,"?:")
 
 //基本类型
@@ -172,7 +174,7 @@ static vector<string> java_token_xml_type = {
 class token
 {
 public:
-	token() ;
+	token();
 	~token();
 	inline string java_token_type(java_token type) {
 		//枚举变量最后一个，防止越界
