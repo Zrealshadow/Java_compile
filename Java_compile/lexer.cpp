@@ -4,6 +4,7 @@
 #include <cstring>
 #include <fstream>
 #include <streambuf>
+#include <sstream>
 #define next (stash=source[offset++])
 
 #define undo (--offset)
@@ -25,6 +26,7 @@ lexer::lexer(string f) :filename(f)
 	tok.value.as_int = 0;
 	tok.value.as_float = 0;
 	tok.value.as_long = 0;
+	outfilename = "scan_out";
 };
 lexer::lexer() {
 	error.clear();
@@ -36,6 +38,7 @@ lexer::lexer() {
 	tok.value.as_int = 0;
 	tok.value.as_float = 0;
 	tok.value.as_long = 0;
+	outfilename = "scan_out";
 }
 
 lexer::~lexer()
@@ -502,14 +505,53 @@ scan_expo:
 	}
 }
 
+
+//最后结果输入到文件中输入文件
+string lexer::java_token_result_infile_xml(const java_token_t &tok) {
+	string ans= "<" + java_token_xml_type[tok.token_type] + ">\t";
+	if (tok.token_type == JAVA_TOKEN_CONSTANT_STRING || tok.token_type == JAVA_TOKEN_ID) {
+		ans+="Value:"+tok.value.as_string+"\t";
+	}
+	else if (tok.token_type == JAVA_TOKEN_CONSTANT_INT) {
+		ans += "Value:" + to_string(tok.value.as_int) + "\t";
+	}
+	else if (tok.token_type == JAVA_TOKEN_CONSTANT_LONG) {
+		ans += "Value:" + to_string(tok.value.as_long) + "\t";
+	}
+	else if (tok.token_type == JAVA_TOKEN_CONSTANT_FLOAT) {
+		ans += "Value:" + to_string(tok.value.as_float) + "\t";
+	}
+	else if (tok.token_type == JAVA_TOKEN_CONSTANT_DOUBLE) {
+		ans += "Value:" + to_string(tok.value.as_real) + "\t";
+	}
+	else if (tok.token_type == JAVA_TOKEN_ILLEGAL) {
+		ans += "Value:Null\tError" + error;
+		ans += "Error line:" + to_string(lineno);
+	}
+	else {
+		ans+="Value:Null\t";
+	}
+	//输出属性值
+ 
+	stringstream ioss;
+	string s;
+	ioss<<hex<<EnumTohex(tok.token_type);
+	ioss >> s;
+
+	
+	ans+="Entity: 0x"+s+"\t";
+	ans += "<" + java_token_xml_type[tok.token_type] + ">\n";
+	return ans;
+}
+
+
 /*
 打印token信息
 */
-
 void lexer::java_token_to_xml(const java_token_t &tok) {
-	cerr << "<" << java_token_xml_type[tok.token_type] << ">\t";
+	cerr<<"<" << java_token_xml_type[tok.token_type] << ">\t";
 	if (tok.token_type == JAVA_TOKEN_CONSTANT_STRING || tok.token_type == JAVA_TOKEN_ID) {
-		cerr << "Value:" << tok.value.as_string<<"\t";
+		cerr << "Value:" << tok.value.as_string << "\t";
 	}
 	else if (tok.token_type == JAVA_TOKEN_CONSTANT_INT) {
 		cerr << "Value:" << tok.value.as_int << "\t";
@@ -524,7 +566,8 @@ void lexer::java_token_to_xml(const java_token_t &tok) {
 		cerr << "Value:" << tok.value.as_real << "\t";
 	}
 	else if (tok.token_type == JAVA_TOKEN_ILLEGAL) {
-		cerr << "Value:Null"<< error << endl << "\t";
+		cerr << "Value:Null" << error << endl << "\t";
+		cerr << "Error line:" << lineno << endl;
 	}
 	else {
 		cerr << "Value:Null\t";
@@ -657,10 +700,6 @@ char * file_read(const string filename) {
 	return NULL;
 }
 
-void lexer::set_filename(string f) {
-	filename = f;
-}
-
 void lexer::scan() {
 	cerr << "Usage:" << endl;
 	if (filename.empty()) {
@@ -669,17 +708,34 @@ void lexer::scan() {
 		cin >> f;
 		set_filename(f);
 	}
-	cerr << "<filename>" << filename << "<filename>" << endl;
+	cerr << "<source_file>" << filename << "<source_file>" << endl;
+	cerr << "<out_file>" << outfilename << "<out_file>" << endl;
 	//读取文件内容
 	source = file_read(filename);
 	//cerr << source << endl;
+
+	//打开outfile
+	ofstream outfile(outfilename);
+	if (outfile) {
+		cerr << "Warning:outfile has been existed, We will replace the origin content"\
+			<< endl;
+	}
 	cerr << "Start Analysis" << endl;
 	while (tok.token_type != JAVA_TOKEN_EOS) {
 		java_lexer_reset();
 		java_scan();
 		java_token_to_xml(tok);
+		outfile << java_token_result_infile_xml(tok);
 	}
 	free(source);
 	cerr << "Word Analysis Finished" << endl;
+	outfile.close();
 }
 
+
+void lexer::set_filename(string f) {
+	filename = f;
+}
+void lexer::reset_out_filename(string f) {
+	outfilename = f;
+}
