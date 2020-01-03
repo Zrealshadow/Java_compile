@@ -8,6 +8,7 @@ using namespace std;
 
 // 关键字
 #define JC_KEYWORD_LIST \
+	t(NoFromZero,"nofromzero")\
 	t(DO,"do") \
 	t(IF,"if") \
 	t(FOR,"for")\
@@ -171,6 +172,8 @@ static vector<string> java_token_xml_type = {
 	JC_BASE_TOKEN_LIST
 #undef t
 };
+
+
 class token
 {
 public:
@@ -178,7 +181,7 @@ public:
 	~token();
 	inline string java_token_type(java_token type) {
 		//枚举变量最后一个，防止越界
-		assert(type < +JAVA_TOKEN_CONSTANT_FLOAT);
+		assert(type <=JAVA_TOKEN_CONSTANT_FLOAT);
 		return java_token_string[type];
 	}
 	void java_token_inspect(java_token_t *tok);

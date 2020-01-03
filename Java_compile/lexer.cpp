@@ -284,6 +284,9 @@ int lexer::scan_string(int quate) {
 			//		goto error;
 			//	}
 			//	//八进制表示字符
+			default:
+				error("error in using \\");
+				return 0;
 			}
 			break;
 		}
@@ -293,6 +296,7 @@ int lexer::scan_string(int quate) {
 	buf.clear();
 	//成功输出 字符串
 	return 1;
+
 error:
 	buf.clear();
 	return 0;
@@ -566,8 +570,8 @@ void lexer::java_token_to_xml(const java_token_t &tok) {
 		cerr << "Value:" << tok.value.as_real << "\t";
 	}
 	else if (tok.token_type == JAVA_TOKEN_ILLEGAL) {
-		cerr << "Value:Null" << error << endl << "\t";
-		cerr << "Error line:" << lineno << endl;
+		cerr << "Value:Null\t" << error << "\t";
+		cerr << "Error line:" << "\t"<<to_string(lineno);
 	}
 	else {
 		cerr << "Value:Null\t";
@@ -675,7 +679,9 @@ unsigned int lexer::EnumTohex(int JAVA_TOKEN) {
 //	return size;
 //}
 
-char * file_read(const string filename) {
+//从filename文件路径中提取出 源代码 以char型数组的形式
+
+static char * file_read(const string filename) {
 
 	ifstream readfile(filename);
 	if (!readfile) cerr << "file is not existed" << endl;
@@ -721,9 +727,10 @@ void lexer::scan() {
 			<< endl;
 	}
 	cerr << "Start Analysis" << endl;
-	while (tok.token_type != JAVA_TOKEN_EOS) {
+	int is = true;
+	while (tok.token_type != JAVA_TOKEN_EOS and is) {
 		java_lexer_reset();
-		java_scan();
+		is=java_scan();
 		java_token_to_xml(tok);
 		outfile << java_token_result_infile_xml(tok);
 	}
